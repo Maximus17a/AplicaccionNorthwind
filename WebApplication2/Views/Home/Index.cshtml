@@ -1,0 +1,66 @@
+﻿@{
+    ViewData["Title"] = "Inicio";
+}
+
+<div class="px-4 pt-5 my-5 text-center border-bottom">
+    <h1 class="display-4 fw-bold">Northwind Sales Analysis</h1>
+    <div class="col-lg-6 mx-auto">
+        <p class="lead mb-4">
+            Sistema de análisis de ventas para la base de datos Northwind.
+            Visualiza y genera informes detallados de las ventas por cliente, producto, categoría y tendencias.
+        </p>
+        @if (!User.Identity.IsAuthenticated)
+        {
+            <div class="d-grid gap-2 d-sm-flex justify-content-sm-center mb-5">
+                <a asp-controller="Account" asp-action="Login" class="btn btn-primary btn-lg px-4 me-sm-3">
+                    <i class="bi bi-box-arrow-in-right me-2"></i>Iniciar sesión
+                </a>
+            </div>
+        }
+        else
+        {
+            <div class="row mb-5">
+                <div class="col-md-6 mb-3">
+                    <div class="card h-100">
+                        <div class="card-body text-center">
+                            <i class="bi bi-people display-4 text-primary mb-3"></i>
+                            <h5 class="card-title">Ventas por Cliente</h5>
+                            <p class="card-text">Analiza las ventas por cliente, incluyendo total gastado y pedidos realizados.</p>
+                            <a asp-controller="Reports" asp-action="CustomerSales" class="btn btn-outline-primary">Ver reporte</a>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <div class="card h-100">
+                        <div class="card-body text-center">
+                            <i class="bi bi-box display-4 text-primary mb-3"></i>
+                            <h5 class="card-title">Ventas por Producto</h5>
+                            <p class="card-text">Visualiza las ventas por producto, incluyendo cantidad vendida e ingresos.</p>
+                            <a asp-controller="Reports" asp-action="ProductSales" class="btn btn-outline-primary">Ver reporte</a>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <div class="card h-100">
+                        <div class="card-body text-center">
+                            <i class="bi bi-tags display-4 text-primary mb-3"></i>
+                            <h5 class="card-title">Análisis por Categoría</h5>
+                            <p class="card-text">Examina el rendimiento de ventas por categoría de productos.</p>
+                            <a asp-controller="Reports" asp-action="CategorySales" class="btn btn-outline-primary">Ver reporte</a>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <div class="card h-100">
+                        <div class="card-body text-center">
+                            <i class="bi bi-graph-up display-4 text-primary mb-3"></i>
+                            <h5 class="card-title">Tendencias de Ventas</h5>
+                            <p class="card-text">Analiza la evolución de ventas a lo largo del tiempo.</p>
+                            <a asp-controller="Reports" asp-action="SalesTrends" class="btn btn-outline-primary">Ver reporte</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+</div>

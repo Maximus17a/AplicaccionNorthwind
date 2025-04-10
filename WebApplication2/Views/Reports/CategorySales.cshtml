@@ -1,0 +1,252 @@
+﻿@model NorthwindSalesAnalysis.Models.ViewModels.CategorySalesViewModel
+
+@{
+    ViewData["Title"] = "Análisis por Categoría";
+}
+
+<div class="container-fluid">
+    <h1 class="mb-4"><i class="bi bi-tags me-2"></i>@ViewData["Title"]</h1>
+    
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0">Filtros</h5>
+                </div>
+                <div class="card-body">
+                    <form asp-action="CategorySales" method="get" class="row">
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Fecha inicio</label>
+                            <input type="date" name="startDate" class="form-control" value="@(Model.StartDate?.ToString("yyyy-MM-dd"))" />
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Fecha fin</label>
+                            <input type="date" name="endDate" class="form-control" value="@(Model.EndDate?.ToString("yyyy-MM-dd"))" />
+                        </div>
+                        <div class="col-md-4 d-flex align-items-end mb-3">
+                            <button type="submit" class="btn btn-primary me-2">
+                                <i class="bi bi-search me-1"></i>Filtrar
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown">
+                                <i class="bi bi-download me-1"></i>Exportar
+                            </button>
+                            <ul class="dropdown-menu">
+                                <li>
+                                    <button type="button" class="dropdown-item" onclick="exportReport('pdf')">
+                                        <i class="bi bi-file-pdf me-2"></i>Exportar como PDF
+                                    </button>
+                                </li>
+                                <li>
+                                    <button type="button" class="dropdown-item" onclick="exportReport('excel')">
+                                        <i class="bi bi-file-excel me-2"></i>Exportar como Excel
+                                    </button>
+                                </li>
+                            </ul>
+                            <form id="exportForm" method="post" style="display:none;">
+                                <input type="hidden" name="reportType" value="category" />
+                                <input type="hidden" name="startDate" value="@Model.StartDate?.ToString("yyyy-MM-dd")" />
+                                <input type="hidden" name="endDate" value="@Model.EndDate?.ToString("yyyy-MM-dd")" />
+                            </form>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0">Ingresos por Categoría</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="categoryRevenueChart" height="300"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0">Productos Vendidos por Categoría</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="categoryProductsChart" height="300"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0">Detalle por Categoría</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover">
+                            <thead class="table-primary">
+                                <tr>
+                                    <th>Categoría</th>
+                                    <th class="text-end">Productos Vendidos</th>
+                                    <th class="text-end">Total Pedidos</th>
+                                    <th class="text-end">Ingresos Totales</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var category in Model.CategorySales)
+                                {
+                                    <tr>
+                                        <td>@category.CategoryName</td>
+                                        <td class="text-end">@category.ProductsSold</td>
+                                        <td class="text-end">@category.TotalOrders</td>
+                                        <td class="text-end">$@category.TotalRevenue.ToString("N2")</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function initCategorySalesCharts(data) {
+            // Colores para los gráficos
+            const backgroundColors = [
+                'rgba(255, 99, 132, 0.7)',
+                'rgba(54, 162, 235, 0.7)',
+                'rgba(255, 206, 86, 0.7)',
+                'rgba(75, 192, 192, 0.7)',
+                'rgba(153, 102, 255, 0.7)',
+                'rgba(255, 159, 64, 0.7)',
+                'rgba(199, 199, 199, 0.7)',
+                'rgba(83, 102, 255, 0.7)',
+                'rgba(40, 159, 64, 0.7)',
+                'rgba(210, 99, 132, 0.7)'
+            ];
+            
+            const borderColors = [
+                'rgba(255, 99, 132, 1)',
+                'rgba(54, 162, 235, 1)',
+                'rgba(255, 206, 86, 1)',
+                'rgba(75, 192, 192, 1)',
+                'rgba(153, 102, 255, 1)',
+                'rgba(255, 159, 64, 1)',
+                'rgba(199, 199, 199, 1)',
+                'rgba(83, 102, 255, 1)',
+                'rgba(40, 159, 64, 1)',
+                'rgba(210, 99, 132, 1)'
+            ];
+            
+            // Preparar datos para los gráficos
+            const labels = data.map(c => c.categoryName);
+            const totalRevenueData = data.map(c => c.totalRevenue);
+            const productsSoldData = data.map(c => c.productsSold);
+            
+            // Gráfico de ingresos por categoría (Pie chart)
+            const revenueCtx = document.getElementById('categoryRevenueChart').getContext('2d');
+            const categoryRevenueChart = new Chart(revenueCtx, {
+                type: 'pie',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: totalRevenueData,
+                        backgroundColor: backgroundColors,
+                        borderColor: borderColors,
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Distribución de Ingresos por Categoría',
+                            font: {
+                                size: 16
+                            }
+                       legend: {
+                            position: 'right',
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const label = context.label || '';
+                                    const value = '$' + context.raw.toFixed(2);
+                                    const total = context.dataset.data.reduce((acc, curr) => acc + curr, 0);
+                                    const percentage = Math.round((context.raw / total) * 100);
+                                    return `${label}: ${value} (${percentage}%)`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Gráfico de productos vendidos por categoría (Doughnut chart)
+            const productsCtx = document.getElementById('categoryProductsChart').getContext('2d');
+            const categoryProductsChart = new Chart(productsCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: productsSoldData,
+                        backgroundColor: backgroundColors,
+                        borderColor: borderColors,
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Distribución de Productos Vendidos por Categoría',
+                            font: {
+                                size: 16
+                            }
+                        },
+                        legend: {
+                            position: 'right',
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const label = context.label || '';
+                                    const value = context.raw;
+                                    const total = context.dataset.data.reduce((acc, curr) => acc + curr, 0);
+                                    const percentage = Math.round((context.raw / total) * 100);
+                                    return `${label}: ${value} unidades (${percentage}%)`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Función para exportar informe
+        function exportReport(format) {
+            const form = document.getElementById('exportForm');
+            if (format === 'pdf') {
+                form.action = '@Url.Action("ExportToPdf", "Reports")';
+            } else {
+                form.action = '@Url.Action("ExportToExcel", "Reports")';
+            }
+            form.submit();
+        }
+
+        // Inicializar los gráficos con los datos del modelo
+        document.addEventListener('DOMContentLoaded', function() {
+            const categoryData = @Html.Raw(Json.Serialize(Model.CategorySales));
+            initCategorySalesCharts(categoryData);
+        });
+    </script>
+}

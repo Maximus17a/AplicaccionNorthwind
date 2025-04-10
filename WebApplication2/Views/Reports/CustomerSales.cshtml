@@ -1,0 +1,244 @@
+﻿@model NorthwindSalesAnalysis.Models.ViewModels.CustomerSalesViewModel
+
+@{
+    ViewData["Title"] = "Ventas por Cliente";
+}
+
+<div class="container-fluid">
+    <h1 class="mb-4"><i class="bi bi-people me-2"></i>@ViewData["Title"]</h1>
+
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0">Filtros</h5>
+                </div>
+                <div class="card-body">
+                    <form asp-action="CustomerSales" method="get" class="row">
+                        <div class="col-md-3 mb-3">
+                            <label class="form-label">Fecha inicio</label>
+                            <input type="date" name="startDate" class="form-control" value="@(Model.StartDate?.ToString("yyyy-MM-dd"))" />
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label class="form-label">Fecha fin</label>
+                            <input type="date" name="endDate" class="form-control" value="@(Model.EndDate?.ToString("yyyy-MM-dd"))" />
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label class="form-label">Categoría</label>
+                            <select name="categoryId" class="form-select">
+                                <option value="">Todas las categorías</option>
+                                @foreach (var category in Model.AvailableCategories)
+                                {
+                                    <option value="@category.CategoryId" selected="@(Model.CategoryId == category.CategoryId)">
+                                        @category.CategoryName
+                                    </option>
+                                }
+                            </select>
+                        </div>
+                        <div class="col-md-3 d-flex align-items-end mb-3">
+                            <button type="submit" class="btn btn-primary me-2">
+                                <i class="bi bi-search me-1"></i>Filtrar
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown">
+                                <i class="bi bi-download me-1"></i>Exportar
+                            </button>
+                            <ul class="dropdown-menu">
+                                <li>
+                                    <button type="button" class="dropdown-item" onclick="exportReport('pdf')">
+                                        <i class="bi bi-file-pdf me-2"></i>Exportar como PDF
+                                    </button>
+                                </li>
+                                <li>
+                                    <button type="button" class="dropdown-item" onclick="exportReport('excel')">
+                                        <i class="bi bi-file-excel me-2"></i>Exportar como Excel
+                                    </button>
+                                </li>
+                            </ul>
+                            <form id="exportForm" method="post" style="display:none;">
+                                <input type="hidden" name="reportType" value="customer" />
+                                <input type="hidden" name="startDate" value="@Model.StartDate?.ToString("yyyy-MM-dd")" />
+                                <input type="hidden" name="endDate" value="@Model.EndDate?.ToString("yyyy-MM-dd")" />
+                                <input type="hidden" name="categoryId" value="@Model.CategoryId" />
+                            </form>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Gráfico de Ventas por Cliente</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="customerSalesChart" height="300"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0">Detalle de Ventas por Cliente</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover">
+                            <thead class="table-primary">
+                                <tr>
+                                    <th>Cliente ID</th>
+                                    <th>Nombre del Cliente</th>
+                                    <th class="text-end">Total Pedidos</th>
+                                    <th class="text-end">Total Gastado</th>
+                                    <th class="text-end">Valor Promedio</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var customer in Model.CustomerSales)
+                                {
+                                    <tr>
+                                        <td>@customer.CustomerId</td>
+                                        <td>@customer.CustomerName</td>
+                                        <td class="text-end">@customer.TotalOrders</td>
+                                        <td class="text-end">$@customer.TotalSpent.ToString("N2")</td>
+                                        <td class="text-end">$@customer.AverageOrderValue.ToString("N2")</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function initCustomerSalesChart(data) {
+            // Ordenar los datos por total gastado (descendente)
+            data.sort((a, b) => b.totalSpent - a.totalSpent);
+
+            // Limitar a los 10 principales clientes para mejor visualización
+            const topCustomers = data.slice(0, 10);
+
+            // Preparar datos para el gráfico
+            const labels = topCustomers.map(c => c.customerName);
+            const totalSpentData = topCustomers.map(c => c.totalSpent);
+            const totalOrdersData = topCustomers.map(c => c.totalOrders);
+
+            // Obtener el contexto del canvas
+            const ctx = document.getElementById('customerSalesChart').getContext('2d');
+
+            // Crear el gráfico
+            const customerSalesChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'Total Gastado ($)',
+                            data: totalSpentData,
+                            backgroundColor: 'rgba(54, 162, 235, 0.7)',
+                            borderColor: 'rgba(54, 162, 235, 1)',
+                            borderWidth: 1,
+                            yAxisID: 'y'
+                        },
+                        {
+                            label: 'Número de Pedidos',
+                            data: totalOrdersData,
+                            backgroundColor: 'rgba(255, 99, 132, 0.7)',
+                            borderColor: 'rgba(255, 99, 132, 1)',
+                            borderWidth: 1,
+                            type: 'line',
+                            yAxisID: 'y1'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Top 10 Clientes por Total Gastado',
+                            font: {
+                                size: 16
+                            }
+                        },
+                        legend: {
+                            position: 'top',
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.dataset.label || '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                    if (context.datasetIndex === 0) {
+                                        label += '$' + context.raw.toFixed(2);
+                                    } else {
+                                        label += context.raw;
+                                    }
+                                    return label;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            ticks: {
+                                maxRotation: 45,
+                                minRotation: 45
+                            }
+                        },
+                        y: {
+                            type: 'linear',
+                            display: true,
+                            position: 'left',
+                            title: {
+                                display: true,
+                                text: 'Total Gastado ($)'
+                            }
+                        },
+                        y1: {
+                            type: 'linear',
+                            display: true,
+                            position: 'right',
+                            grid: {
+                                drawOnChartArea: false
+                            },
+                            title: {
+                                display: true,
+                                text: 'Número de Pedidos'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Función para exportar informe
+        function exportReport(format) {
+            const form = document.getElementById('exportForm');
+            if (format === 'pdf') {
+                form.action = '@Url.Action("ExportToPdf", "Reports")';
+            } else {
+                form.action = '@Url.Action("ExportToExcel", "Reports")';
+            }
+            form.submit();
+        }
+
+        // Inicializar el gráfico con los datos del modelo
+        document.addEventListener('DOMContentLoaded', function() {
+            const customerData = @Html.Raw(Json.Serialize(Model.CustomerSales.Take(10)));
+            initCustomerSalesChart(customerData);
+        });
+    </script>
+}
