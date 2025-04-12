@@ -1,11 +1,13 @@
 using Microsoft.AspNetCore.Authentication.Cookies;
-using Microsoft.AspNetCore.Mvc.Razor;
 using Microsoft.EntityFrameworkCore;
 using NorthwindSalesAnalysis.Models.Repository;
 using NorthwindSalesAnalysis.Services;
-
+using OfficeOpenXml;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Configurar la licencia de EPPlus para Excel
+ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
 
 // Configurar DbContext
 builder.Services.AddDbContext<NorthwindContext>(options =>
@@ -25,12 +27,6 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
         options.AccessDeniedPath = "/Account/AccessDenied";
         options.ExpireTimeSpan = TimeSpan.FromHours(3);
     });
-builder.Services.Configure<RazorViewEngineOptions>(options =>
-{
-    options.ViewLocationFormats.Clear();
-    options.ViewLocationFormats.Add("/Views/{1}/{0}.cshtml");
-    options.ViewLocationFormats.Add("/Views/Shared/{0}.cshtml");
-});
 
 // Añadir servicios de MVC
 builder.Services.AddControllersWithViews();

@@ -6,7 +6,7 @@
 
 <div class="container-fluid">
     <h1 class="mb-4"><i class="bi bi-tags me-2"></i>@ViewData["Title"]</h1>
-    
+
     <div class="row mb-4">
         <div class="col-md-12">
             <div class="card">
@@ -27,33 +27,30 @@
                             <button type="submit" class="btn btn-primary me-2">
                                 <i class="bi bi-search me-1"></i>Filtrar
                             </button>
-                            <button type="button" class="btn btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown">
-                                <i class="bi bi-download me-1"></i>Exportar
-                            </button>
-                            <ul class="dropdown-menu">
-                                <li>
-                                    <button type="button" class="dropdown-item" onclick="exportReport('pdf')">
-                                        <i class="bi bi-file-pdf me-2"></i>Exportar como PDF
-                                    </button>
-                                </li>
-                                <li>
-                                    <button type="button" class="dropdown-item" onclick="exportReport('excel')">
-                                        <i class="bi bi-file-excel me-2"></i>Exportar como Excel
-                                    </button>
-                                </li>
-                            </ul>
-                            <form id="exportForm" method="post" style="display:none;">
-                                <input type="hidden" name="reportType" value="category" />
-                                <input type="hidden" name="startDate" value="@Model.StartDate?.ToString("yyyy-MM-dd")" />
-                                <input type="hidden" name="endDate" value="@Model.EndDate?.ToString("yyyy-MM-dd")" />
-                            </form>
+                            <div class="dropdown">
+                                <button type="button" class="btn btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown">
+                                    <i class="bi bi-download me-1"></i>Exportar
+                                </button>
+                                <ul class="dropdown-menu">
+                                    <li>
+                                        <a href="@Url.Action("ExportToPdf", "Reports", new { reportType = "category", startDate = Model.StartDate?.ToString("yyyy-MM-dd"), endDate = Model.EndDate?.ToString("yyyy-MM-dd") })" class="dropdown-item">
+                                            <i class="bi bi-file-pdf me-2"></i>Exportar como PDF
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a href="@Url.Action("ExportToExcel", "Reports", new { reportType = "category", startDate = Model.StartDate?.ToString("yyyy-MM-dd"), endDate = Model.EndDate?.ToString("yyyy-MM-dd") })" class="dropdown-item">
+                                            <i class="bi bi-file-excel me-2"></i>Exportar como Excel
+                                        </a>
+                                    </li>
+                                </ul>
+                            </div>
                         </div>
                     </form>
                 </div>
             </div>
         </div>
     </div>
-    
+
     <div class="row mb-4">
         <div class="col-md-6">
             <div class="card h-100">
@@ -76,7 +73,7 @@
             </div>
         </div>
     </div>
-    
+
     <div class="row">
         <div class="col-md-12">
             <div class="card">
@@ -129,7 +126,7 @@
                 'rgba(40, 159, 64, 0.7)',
                 'rgba(210, 99, 132, 0.7)'
             ];
-            
+
             const borderColors = [
                 'rgba(255, 99, 132, 1)',
                 'rgba(54, 162, 235, 1)',
@@ -142,12 +139,12 @@
                 'rgba(40, 159, 64, 1)',
                 'rgba(210, 99, 132, 1)'
             ];
-            
+
             // Preparar datos para los gráficos
             const labels = data.map(c => c.categoryName);
             const totalRevenueData = data.map(c => c.totalRevenue);
             const productsSoldData = data.map(c => c.productsSold);
-            
+
             // Gráfico de ingresos por categoría (Pie chart)
             const revenueCtx = document.getElementById('categoryRevenueChart').getContext('2d');
             const categoryRevenueChart = new Chart(revenueCtx, {
@@ -171,7 +168,8 @@
                             font: {
                                 size: 16
                             }
-                       legend: {
+                        },
+                        legend: {
                             position: 'right',
                         },
                         tooltip: {
@@ -230,17 +228,6 @@
                     }
                 }
             });
-        }
-
-        // Función para exportar informe
-        function exportReport(format) {
-            const form = document.getElementById('exportForm');
-            if (format === 'pdf') {
-                form.action = '@Url.Action("ExportToPdf", "Reports")';
-            } else {
-                form.action = '@Url.Action("ExportToExcel", "Reports")';
-            }
-            form.submit();
         }
 
         // Inicializar los gráficos con los datos del modelo

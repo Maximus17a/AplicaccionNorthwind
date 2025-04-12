@@ -38,7 +38,7 @@ namespace NorthwindSalesAnalysis.Models.Repository
                     string sql = @"
                         SELECT c.CustomerID, c.CompanyName, 
                             COUNT(DISTINCT o.OrderID) AS TotalOrders,
-                            SUM(od.UnitPrice * od.Quantity * (1 - od.Discount)) AS TotalSpent
+                            CAST(SUM(od.UnitPrice * od.Quantity * (1 - od.Discount)) AS decimal(18,2)) AS TotalSpent
                         FROM Orders o
                         JOIN Customers c ON o.CustomerID = c.CustomerID
                         JOIN [Order Details] od ON o.OrderID = od.OrderID
@@ -68,13 +68,15 @@ namespace NorthwindSalesAnalysis.Models.Repository
                         {
                             while (await reader.ReadAsync())
                             {
-                                decimal totalSpent = reader.GetDecimal(3);
+                                string customerId = reader.GetString(0);
+                                string customerName = reader.GetString(1);
                                 int totalOrders = reader.GetInt32(2);
+                                decimal totalSpent = reader.GetDecimal(3);
 
                                 customerSalesData.Add(new CustomerSalesData
                                 {
-                                    CustomerId = reader.GetString(0),
-                                    CustomerName = reader.GetString(1),
+                                    CustomerId = customerId,
+                                    CustomerName = customerName,
                                     TotalOrders = totalOrders,
                                     TotalSpent = totalSpent,
                                     AverageOrderValue = totalOrders > 0 ? Math.Round(totalSpent / totalOrders, 2) : 0
@@ -134,9 +136,10 @@ namespace NorthwindSalesAnalysis.Models.Repository
                     await connection.OpenAsync();
 
                     string sql = @"
-                        SELECT p.ProductID, p.ProductName, c.CategoryName, p.UnitPrice,
+                        SELECT p.ProductID, p.ProductName, c.CategoryName, 
+                            CAST(p.UnitPrice AS decimal(18,2)) AS UnitPrice,
                             SUM(od.Quantity) AS TotalQuantity,
-                            SUM(od.UnitPrice * od.Quantity * (1 - od.Discount)) AS TotalRevenue
+                            CAST(SUM(od.UnitPrice * od.Quantity * (1 - od.Discount)) AS decimal(18,2)) AS TotalRevenue
                         FROM [Order Details] od
                         JOIN Orders o ON od.OrderID = o.OrderID
                         JOIN Products p ON od.ProductID = p.ProductID
@@ -166,14 +169,21 @@ namespace NorthwindSalesAnalysis.Models.Repository
                         {
                             while (await reader.ReadAsync())
                             {
+                                int productId = reader.GetInt32(0);
+                                string productName = reader.GetString(1);
+                                string categoryName = reader.GetString(2);
+                                decimal unitPrice = reader.IsDBNull(3) ? 0 : reader.GetDecimal(3);
+                                int totalQuantity = Convert.ToInt32(reader.GetValue(4));
+                                decimal totalRevenue = reader.GetDecimal(5);
+
                                 productSalesData.Add(new ProductSalesData
                                 {
-                                    ProductId = reader.GetInt32(0),
-                                    ProductName = reader.GetString(1),
-                                    CategoryName = reader.GetString(2),
-                                    UnitPrice = reader.IsDBNull(3) ? 0 : reader.GetDecimal(3),
-                                    TotalQuantity = reader.GetInt32(4),
-                                    TotalRevenue = reader.GetDecimal(5)
+                                    ProductId = productId,
+                                    ProductName = productName,
+                                    CategoryName = categoryName,
+                                    UnitPrice = unitPrice,
+                                    TotalQuantity = totalQuantity,
+                                    TotalRevenue = totalRevenue
                                 });
                             }
                         }
@@ -232,7 +242,7 @@ namespace NorthwindSalesAnalysis.Models.Repository
                     string sql = @"
                         SELECT c.CategoryID, c.CategoryName,
                             SUM(od.Quantity) AS ProductsSold,
-                            SUM(od.UnitPrice * od.Quantity * (1 - od.Discount)) AS TotalRevenue,
+                            CAST(SUM(od.UnitPrice * od.Quantity * (1 - od.Discount)) AS decimal(18,2)) AS TotalRevenue,
                             COUNT(DISTINCT o.OrderID) AS TotalOrders
                         FROM [Order Details] od
                         JOIN Orders o ON od.OrderID = o.OrderID
@@ -251,13 +261,19 @@ namespace NorthwindSalesAnalysis.Models.Repository
                         {
                             while (await reader.ReadAsync())
                             {
+                                int categoryId = reader.GetInt32(0);
+                                string categoryName = reader.GetString(1);
+                                int productsSold = Convert.ToInt32(reader.GetValue(2));
+                                decimal totalRevenue = reader.GetDecimal(3);
+                                int totalOrders = reader.GetInt32(4);
+
                                 categorySalesData.Add(new CategorySalesData
                                 {
-                                    CategoryId = reader.GetInt32(0),
-                                    CategoryName = reader.GetString(1),
-                                    ProductsSold = reader.GetInt32(2),
-                                    TotalRevenue = reader.GetDecimal(3),
-                                    TotalOrders = reader.GetInt32(4)
+                                    CategoryId = categoryId,
+                                    CategoryName = categoryName,
+                                    ProductsSold = productsSold,
+                                    TotalRevenue = totalRevenue,
+                                    TotalOrders = totalOrders
                                 });
                             }
                         }
@@ -310,7 +326,7 @@ namespace NorthwindSalesAnalysis.Models.Repository
                                 YEAR(o.OrderDate) AS Year,
                                 MONTH(o.OrderDate) AS Month,
                                 COUNT(DISTINCT o.OrderID) AS OrderCount,
-                                SUM(od.UnitPrice * od.Quantity * (1 - od.Discount)) AS TotalSales
+                                CAST(SUM(od.UnitPrice * od.Quantity * (1 - od.Discount)) AS decimal(18,2)) AS TotalSales
                             FROM Orders o
                             JOIN [Order Details] od ON o.OrderID = od.OrderID
                             WHERE o.OrderDate BETWEEN @startDate AND @endDate
@@ -324,7 +340,7 @@ namespace NorthwindSalesAnalysis.Models.Repository
                                 YEAR(o.OrderDate) AS Year,
                                 (MONTH(o.OrderDate) - 1) / 3 + 1 AS Quarter,
                                 COUNT(DISTINCT o.OrderID) AS OrderCount,
-                                SUM(od.UnitPrice * od.Quantity * (1 - od.Discount)) AS TotalSales
+                                CAST(SUM(od.UnitPrice * od.Quantity * (1 - od.Discount)) AS decimal(18,2)) AS TotalSales
                             FROM Orders o
                             JOIN [Order Details] od ON o.OrderID = od.OrderID
                             WHERE o.OrderDate BETWEEN @startDate AND @endDate
