@@ -18,52 +18,56 @@ namespace NorthwindSalesAnalysis.Services
             Console.WriteLine($"Iniciando exportación a PDF para '{reportTitle}'");
             try
             {
-                using (MemoryStream ms = new MemoryStream())
+                // Usar un bloque using explícito para controlar el cierre del stream
+                MemoryStream ms = new MemoryStream();
+                PdfWriter writer = new PdfWriter(ms);
+                PdfDocument pdf = new PdfDocument(writer);
+                Document document = new Document(pdf);
+
+                Console.WriteLine("Documento PDF creado correctamente");
+
+                // Agregar título con configuración de fuente 
+                Paragraph titleParagraph = new Paragraph(reportTitle)
+                    .SetFontSize(20f);  // Usar un valor float explícito
+                document.Add(titleParagraph);
+
+                document.Add(new Paragraph($"Generado el {DateTime.Now:dd/MM/yyyy HH:mm}"));
+                document.Add(new Paragraph("\n"));
+
+                Console.WriteLine("Agregando contenido específico al PDF");
+
+                // Implementar lógica específica para cada tipo de informe
+                if (data is CustomerSalesViewModel customerData)
                 {
-                    PdfWriter writer = new PdfWriter(ms);
-                    PdfDocument pdf = new PdfDocument(writer);
-                    Document document = new Document(pdf);
-
-                    Console.WriteLine("Documento PDF creado correctamente");
-
-                    // Usar Add en lugar de construcciones fluidas
-                    Paragraph titleParagraph = new Paragraph(reportTitle);
-                    titleParagraph.SetProperty(Property.FONT_SIZE, 20);
-                    titleParagraph.SetProperty(Property.BOLD_SIMULATION, true);
-                    document.Add(titleParagraph);
-
-                    document.Add(new Paragraph($"Generado el {DateTime.Now:dd/MM/yyyy HH:mm}"));
-                    document.Add(new Paragraph("\n"));
-
-                    Console.WriteLine("Agregando contenido específico al PDF");
-
-                    // Implementar lógica específica para cada tipo de informe
-                    if (data is CustomerSalesViewModel customerData)
-                    {
-                        AddCustomerSalesToPdf(document, customerData);
-                    }
-                    else if (data is ProductSalesViewModel productData)
-                    {
-                        AddProductSalesToPdf(document, productData);
-                    }
-                    else if (data is CategorySalesViewModel categoryData)
-                    {
-                        AddCategorySalesToPdf(document, categoryData);
-                    }
-                    else if (data is SalesTrendViewModel trendData)
-                    {
-                        AddSalesTrendsToPdf(document, trendData);
-                    }
-
-                    document.Close();
-                    writer.Close();
-
-                    Console.WriteLine($"Documento PDF cerrado. Tamaño: {ms.Length} bytes");
-
-                    // Importante: Obtener los bytes antes de que el stream se cierre
-                    byte[] bytes = ms.ToArray();
-                    return bytes;
+                    AddCustomerSalesToPdf(document, customerData);
                 }
+                else if (data is ProductSalesViewModel productData)
+                {
+                    AddProductSalesToPdf(document, productData);
+                }
+                else if (data is CategorySalesViewModel categoryData)
+                {
+                    AddCategorySalesToPdf(document, categoryData);
+                }
+                else if (data is SalesTrendViewModel trendData)
+                {
+                    AddSalesTrendsToPdf(document, trendData);
+                }
+
+                // Cerrar el documento primero
+                document.Close();
+
+                // Obtener los bytes del stream antes de cerrar el writer
+                byte[] bytes = ms.ToArray();
+
+                // Cerrar el writer después de obtener los bytes
+                writer.Close();
+
+                // Cerrar el stream después de todo
+                ms.Close();
+
+                Console.WriteLine($"Documento PDF cerrado. Tamaño: {bytes.Length} bytes");
+                return bytes;
             }
             catch (Exception ex)
             {
@@ -153,12 +157,29 @@ namespace NorthwindSalesAnalysis.Services
 
                 document.Add(new Paragraph("\n"));
 
-                Table table = new Table(5).UseAllAvailableWidth();
-                table.AddHeaderCell("Cliente ID");
-                table.AddHeaderCell("Nombre del Cliente");
-                table.AddHeaderCell("Total Pedidos");
-                table.AddHeaderCell("Total Gastado");
-                table.AddHeaderCell("Valor Promedio");
+                // Crear tabla con el método correcto
+                Table table = new Table(UnitValue.CreatePercentArray(new float[] { 1, 3, 1, 1, 1 }))
+                    .UseAllAvailableWidth();
+
+                // Crear celdas de encabezado 
+                Cell headerCell1 = new Cell().Add(new Paragraph("Cliente ID"));
+                Cell headerCell2 = new Cell().Add(new Paragraph("Nombre del Cliente"));
+                Cell headerCell3 = new Cell().Add(new Paragraph("Total Pedidos"));
+                Cell headerCell4 = new Cell().Add(new Paragraph("Total Gastado"));
+                Cell headerCell5 = new Cell().Add(new Paragraph("Valor Promedio"));
+
+                // Aplicar estilo a las celdas de encabezado
+                headerCell1.SetBackgroundColor(new iText.Kernel.Colors.DeviceRgb(240, 240, 240));
+                headerCell2.SetBackgroundColor(new iText.Kernel.Colors.DeviceRgb(240, 240, 240));
+                headerCell3.SetBackgroundColor(new iText.Kernel.Colors.DeviceRgb(240, 240, 240));
+                headerCell4.SetBackgroundColor(new iText.Kernel.Colors.DeviceRgb(240, 240, 240));
+                headerCell5.SetBackgroundColor(new iText.Kernel.Colors.DeviceRgb(240, 240, 240));
+
+                table.AddHeaderCell(headerCell1);
+                table.AddHeaderCell(headerCell2);
+                table.AddHeaderCell(headerCell3);
+                table.AddHeaderCell(headerCell4);
+                table.AddHeaderCell(headerCell5);
 
                 foreach (var customer in data.CustomerSales)
                 {
@@ -193,12 +214,29 @@ namespace NorthwindSalesAnalysis.Services
 
                 document.Add(new Paragraph("\n"));
 
-                Table table = new Table(5).UseAllAvailableWidth();
-                table.AddHeaderCell("Producto");
-                table.AddHeaderCell("Categoría");
-                table.AddHeaderCell("Precio Unitario");
-                table.AddHeaderCell("Cantidad Vendida");
-                table.AddHeaderCell("Ingresos Totales");
+                // Usar el método correcto para crear una tabla
+                Table table = new Table(UnitValue.CreatePercentArray(new float[] { 3, 2, 1, 1, 1 }))
+                    .UseAllAvailableWidth();
+
+                // Crear celdas de encabezado
+                Cell headerCell1 = new Cell().Add(new Paragraph("Producto"));
+                Cell headerCell2 = new Cell().Add(new Paragraph("Categoría"));
+                Cell headerCell3 = new Cell().Add(new Paragraph("Precio Unitario"));
+                Cell headerCell4 = new Cell().Add(new Paragraph("Cantidad Vendida"));
+                Cell headerCell5 = new Cell().Add(new Paragraph("Ingresos Totales"));
+
+                // Aplicar estilo a las celdas de encabezado
+                headerCell1.SetBackgroundColor(new iText.Kernel.Colors.DeviceRgb(240, 240, 240));
+                headerCell2.SetBackgroundColor(new iText.Kernel.Colors.DeviceRgb(240, 240, 240));
+                headerCell3.SetBackgroundColor(new iText.Kernel.Colors.DeviceRgb(240, 240, 240));
+                headerCell4.SetBackgroundColor(new iText.Kernel.Colors.DeviceRgb(240, 240, 240));
+                headerCell5.SetBackgroundColor(new iText.Kernel.Colors.DeviceRgb(240, 240, 240));
+
+                table.AddHeaderCell(headerCell1);
+                table.AddHeaderCell(headerCell2);
+                table.AddHeaderCell(headerCell3);
+                table.AddHeaderCell(headerCell4);
+                table.AddHeaderCell(headerCell5);
 
                 foreach (var product in data.ProductSales)
                 {
@@ -226,11 +264,26 @@ namespace NorthwindSalesAnalysis.Services
                 document.Add(new Paragraph($"Período: {data.StartDate?.ToString("dd/MM/yyyy")} - {data.EndDate?.ToString("dd/MM/yyyy")}"));
                 document.Add(new Paragraph("\n"));
 
-                Table table = new Table(4).UseAllAvailableWidth();
-                table.AddHeaderCell("Categoría");
-                table.AddHeaderCell("Productos Vendidos");
-                table.AddHeaderCell("Pedidos");
-                table.AddHeaderCell("Ingresos Totales");
+                // Usar el método correcto para crear una tabla
+                Table table = new Table(UnitValue.CreatePercentArray(new float[] { 3, 1, 1, 2 }))
+                    .UseAllAvailableWidth();
+
+                // Crear celdas de encabezado
+                Cell headerCell1 = new Cell().Add(new Paragraph("Categoría"));
+                Cell headerCell2 = new Cell().Add(new Paragraph("Productos Vendidos"));
+                Cell headerCell3 = new Cell().Add(new Paragraph("Pedidos"));
+                Cell headerCell4 = new Cell().Add(new Paragraph("Ingresos Totales"));
+
+                // Aplicar estilo a las celdas de encabezado
+                headerCell1.SetBackgroundColor(new iText.Kernel.Colors.DeviceRgb(240, 240, 240));
+                headerCell2.SetBackgroundColor(new iText.Kernel.Colors.DeviceRgb(240, 240, 240));
+                headerCell3.SetBackgroundColor(new iText.Kernel.Colors.DeviceRgb(240, 240, 240));
+                headerCell4.SetBackgroundColor(new iText.Kernel.Colors.DeviceRgb(240, 240, 240));
+
+                table.AddHeaderCell(headerCell1);
+                table.AddHeaderCell(headerCell2);
+                table.AddHeaderCell(headerCell3);
+                table.AddHeaderCell(headerCell4);
 
                 foreach (var category in data.CategorySales)
                 {
@@ -258,11 +311,26 @@ namespace NorthwindSalesAnalysis.Services
                 document.Add(new Paragraph($"Agrupación: {(data.Period == "monthly" ? "Mensual" : "Trimestral")}"));
                 document.Add(new Paragraph("\n"));
 
-                Table table = new Table(4).UseAllAvailableWidth();
-                table.AddHeaderCell("Período");
-                table.AddHeaderCell("Pedidos");
-                table.AddHeaderCell("Ventas Totales");
-                table.AddHeaderCell("Valor Promedio");
+                // Usar el método correcto para crear una tabla
+                Table table = new Table(UnitValue.CreatePercentArray(new float[] { 2, 1, 2, 2 }))
+                    .UseAllAvailableWidth();
+
+                // Crear celdas de encabezado
+                Cell headerCell1 = new Cell().Add(new Paragraph("Período"));
+                Cell headerCell2 = new Cell().Add(new Paragraph("Pedidos"));
+                Cell headerCell3 = new Cell().Add(new Paragraph("Ventas Totales"));
+                Cell headerCell4 = new Cell().Add(new Paragraph("Valor Promedio"));
+
+                // Aplicar estilo a las celdas de encabezado
+                headerCell1.SetBackgroundColor(new iText.Kernel.Colors.DeviceRgb(240, 240, 240));
+                headerCell2.SetBackgroundColor(new iText.Kernel.Colors.DeviceRgb(240, 240, 240));
+                headerCell3.SetBackgroundColor(new iText.Kernel.Colors.DeviceRgb(240, 240, 240));
+                headerCell4.SetBackgroundColor(new iText.Kernel.Colors.DeviceRgb(240, 240, 240));
+
+                table.AddHeaderCell(headerCell1);
+                table.AddHeaderCell(headerCell2);
+                table.AddHeaderCell(headerCell3);
+                table.AddHeaderCell(headerCell4);
 
                 foreach (var trend in data.SalesTrends)
                 {

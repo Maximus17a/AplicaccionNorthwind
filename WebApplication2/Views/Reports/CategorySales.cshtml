@@ -1,7 +1,13 @@
-﻿@model NorthwindSalesAnalysis.Models.ViewModels.CategorySalesViewModel
+﻿```cshtml
+@model NorthwindSalesAnalysis.Models.ViewModels.CategorySalesViewModel
 
 @{
     ViewData["Title"] = "Análisis por Categoría";
+
+    // Preparar datos para JavaScript de manera explícita
+    var categoryNames = Newtonsoft.Json.JsonConvert.SerializeObject(Model.CategorySales.Select(c => c.CategoryName).ToList());
+    var totalRevenues = Newtonsoft.Json.JsonConvert.SerializeObject(Model.CategorySales.Select(c => c.TotalRevenue).ToList());
+    var productsSold = Newtonsoft.Json.JsonConvert.SerializeObject(Model.CategorySales.Select(c => c.ProductsSold).ToList());
 }
 
 <div class="container-fluid">
@@ -58,7 +64,7 @@
                     <h5 class="mb-0">Ingresos por Categoría</h5>
                 </div>
                 <div class="card-body">
-                    <canvas id="categoryRevenueChart" height="300"></canvas>
+                    <canvas id="categoryRevenueChart" style="max-height: 300px;"></canvas>
                 </div>
             </div>
         </div>
@@ -68,7 +74,7 @@
                     <h5 class="mb-0">Productos Vendidos por Categoría</h5>
                 </div>
                 <div class="card-body">
-                    <canvas id="categoryProductsChart" height="300"></canvas>
+                    <canvas id="categoryProductsChart" style="max-height: 300px;"></canvas>
                 </div>
             </div>
         </div>
@@ -112,7 +118,18 @@
 
 @section Scripts {
     <script>
-        function initCategorySalesCharts(data) {
+        document.addEventListener('DOMContentLoaded', function() {
+            // Valores extraídos directamente del modelo y serializados
+            const labels = @Html.Raw(categoryNames);
+            const revenueData = @Html.Raw(totalRevenues);
+            const productData = @Html.Raw(productsSold);
+
+            // Verificar que tenemos datos antes de continuar
+            if (labels.length === 0) {
+                console.error("No hay datos para mostrar en los gráficos");
+                return;
+            }
+
             // Colores para los gráficos
             const backgroundColors = [
                 'rgba(255, 99, 132, 0.7)',
@@ -140,100 +157,103 @@
                 'rgba(210, 99, 132, 1)'
             ];
 
-            // Preparar datos para los gráficos
-            const labels = data.map(c => c.categoryName);
-            const totalRevenueData = data.map(c => c.totalRevenue);
-            const productsSoldData = data.map(c => c.productsSold);
+            // Ajustar colores si hay más categorías que colores
+            while (backgroundColors.length < labels.length) {
+                backgroundColors.push(...backgroundColors);
+                borderColors.push(...borderColors);
+            }
 
-            // Gráfico de ingresos por categoría (Pie chart)
-            const revenueCtx = document.getElementById('categoryRevenueChart').getContext('2d');
-            const categoryRevenueChart = new Chart(revenueCtx, {
-                type: 'pie',
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        data: totalRevenueData,
-                        backgroundColor: backgroundColors,
-                        borderColor: borderColors,
-                        borderWidth: 1
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        title: {
-                            display: true,
-                            text: 'Distribución de Ingresos por Categoría',
-                            font: {
-                                size: 16
-                            }
+            try {
+                // Gráfico de ingresos por categoría (Pie chart)
+                const revenueCtx = document.getElementById('categoryRevenueChart');
+                if (revenueCtx) {
+                    new Chart(revenueCtx, {
+                        type: 'pie',
+                        data: {
+                            labels: labels,
+                            datasets: [{
+                                data: revenueData,
+                                backgroundColor: backgroundColors.slice(0, labels.length),
+                                borderColor: borderColors.slice(0, labels.length),
+                                borderWidth: 1
+                            }]
                         },
-                        legend: {
-                            position: 'right',
-                        },
-                        tooltip: {
-                            callbacks: {
-                                label: function(context) {
-                                    const label = context.label || '';
-                                    const value = '$' + context.raw.toFixed(2);
-                                    const total = context.dataset.data.reduce((acc, curr) => acc + curr, 0);
-                                    const percentage = Math.round((context.raw / total) * 100);
-                                    return `${label}: ${value} (${percentage}%)`;
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                title: {
+                                    display: true,
+                                    text: 'Distribución de Ingresos por Categoría',
+                                    font: {
+                                        size: 16
+                                    }
+                                },
+                                legend: {
+                                    position: 'right',
+                                },
+                                tooltip: {
+                                    callbacks: {
+                                        label: function(context) {
+                                            const label = context.label || '';
+                                            const value = '$' + context.raw.toFixed(2);
+                                            const total = context.dataset.data.reduce((acc, curr) => acc + Number(curr), 0);
+                                            const percentage = Math.round((context.raw / total) * 100);
+                                            return `${label}: ${value} (${percentage}%)`;
+                                        }
+                                    }
                                 }
                             }
                         }
-                    }
+                    });
                 }
-            });
 
-            // Gráfico de productos vendidos por categoría (Doughnut chart)
-            const productsCtx = document.getElementById('categoryProductsChart').getContext('2d');
-            const categoryProductsChart = new Chart(productsCtx, {
-                type: 'doughnut',
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        data: productsSoldData,
-                        backgroundColor: backgroundColors,
-                        borderColor: borderColors,
-                        borderWidth: 1
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        title: {
-                            display: true,
-                            text: 'Distribución de Productos Vendidos por Categoría',
-                            font: {
-                                size: 16
-                            }
+                // Gráfico de productos vendidos por categoría (Doughnut chart)
+                const productsCtx = document.getElementById('categoryProductsChart');
+                if (productsCtx) {
+                    new Chart(productsCtx, {
+                        type: 'doughnut',
+                        data: {
+                            labels: labels,
+                            datasets: [{
+                                data: productData,
+                                backgroundColor: backgroundColors.slice(0, labels.length),
+                                borderColor: borderColors.slice(0, labels.length),
+                                borderWidth: 1
+                            }]
                         },
-                        legend: {
-                            position: 'right',
-                        },
-                        tooltip: {
-                            callbacks: {
-                                label: function(context) {
-                                    const label = context.label || '';
-                                    const value = context.raw;
-                                    const total = context.dataset.data.reduce((acc, curr) => acc + curr, 0);
-                                    const percentage = Math.round((context.raw / total) * 100);
-                                    return `${label}: ${value} unidades (${percentage}%)`;
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                title: {
+                                    display: true,
+                                    text: 'Distribución de Productos Vendidos por Categoría',
+                                    font: {
+                                        size: 16
+                                    }
+                                },
+                                legend: {
+                                    position: 'right',
+                                },
+                                tooltip: {
+                                    callbacks: {
+                                        label: function(context) {
+                                            const label = context.label || '';
+                                            const value = context.raw;
+                                            const total = context.dataset.data.reduce((acc, curr) => acc + Number(curr), 0);
+                                            const percentage = Math.round((context.raw / total) * 100);
+                                            return `${label}: ${value} unidades (${percentage}%)`;
+                                        }
+                                    }
                                 }
                             }
                         }
-                    }
+                    });
                 }
-            });
-        }
-
-        // Inicializar los gráficos con los datos del modelo
-        document.addEventListener('DOMContentLoaded', function() {
-            const categoryData = @Html.Raw(Json.Serialize(Model.CategorySales));
-            initCategorySalesCharts(categoryData);
+            } catch (error) {
+                console.error("Error al inicializar los gráficos:", error);
+            }
         });
     </script>
 }
